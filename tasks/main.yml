@@ -1,0 +1,105 @@
+---
+- import_role:
+  name: geerlingguy.mysql
+        
+- import_role:
+  name: guilieb.httpd
+
+- name: Remove directories from any previous installation
+  file:
+    path: /srv/www.d/{{ nextcloud_domain }}.d/
+    state: absent
+  with_items:
+    - /srv/www.d/{{ nextcloud_domain }}.d/
+    - /srv/www.d/nextcloud/
+
+- name: Create ‘www.d’ directory if absent
+  file:
+    path: /srv/www.d/
+    state: directory
+    owner: apache
+    group: apache
+    mode: 0700
+
+- name: Download nextcloud file from ‘download.nextcloud.com’
+  get_url:
+    url: "{{ nextcloud_release_url }}"
+    dest: /srv/www.d/nextcloud.zip
+    checksum: "sha256:{{ nextcloud_release_sha256_sum }}"
+
+- name: Extract nextCloud to ‘/srv/www.d’
+  unarchive:
+    src: /srv/www.d/nextcloud.zip
+    dest: /srv/www.d
+    remote_src: true
+
+- name: Move all files to ‘{{ nextcloud_domain }}’
+  command: mv /srv/www.d/nextcloud /srv/www.d/{{ nextcloud_domain }}.d
+
+- name: Remove previous nextCloud unzip directory
+  file:
+    path: /srv/www.d/nextcloud.zip
+    state: absent
+
+- name: Set rights for HTTPd directories for the ‘apache’ user
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: apache
+    group: apache
+    mode: 0770
+  with_items:
+    - /srv/www.d
+    - /srv/www.d/{{ nextcloud_domain }}.d/config
+
+- name: Create data directory for nextCloud
+  file:
+    path: /home/{{ nextcloud_domain }}/data
+    state: directory
+    owner: apache
+    group: apache
+    mode: 0700
+  
+- name: Create ‘.ocdata’ file for nextCloud data
+  file:
+    path: /home/{{ nextcloud_domain }}/data/.ocdata
+    state: file
+    owner: apache
+    group: apache
+    mode: 0600
+
+# Selinux
+- import_tasks: selinux.yml
+ 
+# Configuration files
+- import_tasks: php.yml
+
+# Cron job
+- name: Set cron job for ‘apache’ user
+  cron:
+    user: apache
+    name: "call cron.php for {{ nextcloud_domain }}"
+    minute: "5"
+    job: "php -f /srv/www.d/{{ nextcloud_domain }}.d/cron.php"
+    
+# Copy HTTPd configuration
+- name: Copy ‘{{ nextcloud_domain }}’ httpd file
+  copy:
+    src: files/httpd/{{ nextcloud_domain }}.conf
+    dest: /etc/httpd/conf.d/{{ nextcloud_domain }}.conf
+    mode: 0640
+    owner: apache
+    group: apache
+  notify:
+    - "Restart HTTD daemon"
+    
+# Run the installation process
+- name: "Run nextCloud installation"
+  become_user: apache
+  shell: 
+    cmd: |
+      php occ maintenance:install
+      --database "localhost" --database-name "{{ nextcloud_db }}"  --database-user "{{ nextcloud_db_user }}" --database-pass "{{ nextcloud_db_password }}"
+      --admin-user "{{ nextcloud_admin_user }}" --admin-pass "{{ nextcloud_admin_password }}"
+  

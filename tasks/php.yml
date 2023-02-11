@@ -1,0 +1,36 @@
+---
+- name: Install required php dependencies
+  package:
+    name:
+      - php
+      - php-fpm
+      - php-imagick
+      - php-gd
+      - php-zip
+      - sendmail
+      - php-mysqli
+      - php-bcmath
+      - php-gmp
+      - php-mbstring
+      - php-intl
+      - unzip
+      - php-pecl-apcu
+    state: present
+
+- name: "[PHP] Update ‘php.ini’ configuration"
+  lineinfile:
+    path: /etc/php.ini
+    regexp: "{{ item.regex }}"
+    line: "{{ item.line }}"
+  loop:
+    - {"regex": '^memory_limit =', "line": "memory_limit = 768M"}
+    - {"regex": '^upload_max_filesize =', "line": "upload_max_filesize = 500M"}
+
+- name: "[PHP] Enable APCU cache in ‘40-apcu.ini’"
+  lineinfile:
+    path: /etc/php.d/40-apcu.ini
+    regexp: "{{ item.regex }}"
+    line: "{{ item.line }}"
+  loop:
+    - {"regex": "^apc.enabled", "line": "apc.enabled = 1"}
+    - {"regex": "^apc.enable_cli", "line": "apc.enable_cli = 1"}

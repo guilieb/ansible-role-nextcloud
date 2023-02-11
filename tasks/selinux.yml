@@ -1,0 +1,29 @@
+---
+- name: Put SELinux in enforcing mode
+  selinux:
+    policy: targeted
+    state: enforcing
+        
+- name: "[SELinux] Allow the HTTP server to read/write files"
+  sefcontext:
+    target: "{{ item }}"
+    setype: httpd_sys_rw_content_t
+    state: present
+  with_items:
+    - "/srv/www.d(/.*)"
+    - /home/{{ nextcloud_domain }}/data
+  
+- name: "[SELinux] Set selinux flags on and keep them persistent across reboots"
+  seboolean:
+    name: httpd_can_network_connect
+    state: true
+    persistent: true
+  with_items:
+    - httpd_can_network_connect
+    - httpd_can_sendmail
+
+- name: "[SELinux] Apply new SELinux file context to filesystem"
+  command: "restorecon -irv {{ item }}"
+  with_items:
+    - /home/{{ nextcloud_domain }}/data
+    - /srv/www.d

@@ -1,0 +1,18 @@
+---
+
+galaxy_info:
+  author: Guillaume Bernard
+  description: Install and update nextCloud on Fedora
+  license: GPLv3
+  role_name: "nextcloud"
+  min_ansible_version: 2.0
+  galaxy_tags:
+    - nextcloud
+  platforms:
+  - name: Fedora
+    versions:
+      - 36
+      
+dependencies:
+  - geerlingguy.mysql
+  - guilieb.httpd
