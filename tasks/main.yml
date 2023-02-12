@@ -100,6 +100,7 @@
   shell: 
     cmd: |
       php occ maintenance:install
-      --database "localhost" --database-name "{{ nextcloud_db }}"  --database-user "{{ nextcloud_db_user }}" --database-pass "{{ nextcloud_db_password }}"
+      --database "localhost" --database-name "{{ nextcloud_db }}" --database-user "{{ nextcloud_db_user }}" --database-pass "{{ nextcloud_db_password }}"
       --admin-user "{{ nextcloud_admin_user }}" --admin-pass "{{ nextcloud_admin_password }}"
+      --data-dir /home/{{ nextcloud_domain }}/data
   
